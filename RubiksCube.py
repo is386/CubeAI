@@ -69,14 +69,14 @@ class Cube:
     def __str__(self):
         s = self.state
         cubeStr = ""
-        cubeStr += "\n   {}{}\n".format(s[0], s[1])
-        cubeStr += "   {}{}\n".format(s[2], s[3])
+        cubeStr += "   {}{}      \n".format(s[0], s[1])
+        cubeStr += "   {}{}      \n".format(s[2], s[3])
         cubeStr += "{}{} {}{} {}{} {}{}\n".format(
             s[16], s[17], s[8], s[9], s[4], s[5], s[20], s[21])
         cubeStr += "{}{} {}{} {}{} {}{}\n".format(
             s[18], s[19], s[10], s[11], s[6], s[7], s[22], s[23])
-        cubeStr += "   {}{}\n".format(s[12], s[13])
-        cubeStr += "   {}{}\n".format(s[14], s[15])
+        cubeStr += "   {}{}      \n".format(s[12], s[13])
+        cubeStr += "   {}{}      \n".format(s[14], s[15])
         return cubeStr
 
     # Prints the state of the cube
@@ -85,12 +85,21 @@ class Cube:
 
     # Prints a sequence of moves
     def printSequence(self, moves):
-        s = str(self)
-        print(s)
+        s1 = str(self)
+        n = 1
         for move in moves:
+            if n == 3:
+                n = 1
+                print(s1)
+                self.state = self.applyMove(self.state, move)
+                s1 = str(self)
+                continue
             self.state = self.applyMove(self.state, move)
-            s = str(self)
-            print(s)
+            s2 = str(self)
+            s1 = "\n".join(["  ".join(s3)
+                            for s3 in zip(s1.split("\n"), s2.split("\n"))])
+            n += 1
+        print(s1)
 
     # Returns True if the state is the goal state, False otherwise
     def isSolved(self):
@@ -306,7 +315,7 @@ def main():
         cube.state = cube.applyMovesStr(argv[2])
         moves, nodeCount, time = cube.bfs()
         print(" ".join(moves))
-        # cube.printSequence(moves)
+        cube.printSequence(moves)
         print(nodeCount)
         print(round(time, 2))
     elif cmd == "ids" and argc > 2:
@@ -315,7 +324,7 @@ def main():
         moves, nodeCount, time, depth = cube.ids()
         print("IDS found a solution at depth", depth)
         print(" ".join(moves))
-        # cube.printSequence(moves)
+        cube.printSequence(moves)
         print(nodeCount)
         print(round(time, 2))
 
