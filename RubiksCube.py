@@ -1,7 +1,7 @@
 from random import choice
 from sys import argv
 from time import time
-
+from RubiksVisualizer import RubiksVisualizer
 
 # different moves
 # https://ruwix.com/online-puzzle-simulators/2x2x2-pocket-cube-simulator.php
@@ -25,12 +25,12 @@ MOVES = {
 '''
 sticker indices:
 
-      0  1
-      2  3
+       0  1
+       2  3
 16 17  8  9   4  5  20 21
 18 19  10 11  6  7  22 23
-      12 13
-      14 15
+       12 13
+       14 15
 
 face colors:
 
@@ -221,7 +221,7 @@ class Cube:
                     continue
                 # Applies move and normalizes result so we don't store duplicate states
                 state = self.norm(self.applyMove(cube0.state, move))
-                cube = Cube(self.norm(state), cube0.moves[:])
+                cube = Cube(state, cube0.moves[:])
                 # Tracks the moves up to this cube
                 cube.addMove(move)
                 if state not in closed and state not in opened:
@@ -229,6 +229,44 @@ class Cube:
                         return cube.moves, len(closed), time() - start
                     opened.append(state)
                     cubes.append(cube)
+
+    # Solves the cube using iterative deepening search
+    def ids(self):
+        if self.isSolved():
+            return self.moves, 0, 0.0
+        totalNodes = 0
+        start = time()
+        depth = 0
+        cube = self
+        while True:
+            # Iteratively calls depth limited search until solution is found
+            cube, nodeCount = self.dls(cube, depth)
+            totalNodes += nodeCount
+            print("Depth: {} d: {}".format(depth, nodeCount))
+            if cube.isSolved():
+                return cube.moves, totalNodes, time() - start, depth
+            depth += 1
+
+    def dls(self, cube0, limit):
+        nodeCount = 0
+        if cube0.isSolved() or limit <= 0:
+            return cube0, nodeCount
+        for move in MOVES.keys():
+            # Skips moves that lead to unnecessary states
+            if not cube0.validMove(move):
+                continue
+            # Applies move
+            state = self.applyMove(cube0.state, move)
+            cube = Cube(state, cube0.moves[:])
+            # Tracks the moves up to this cube
+            cube.addMove(move)
+            nodeCount += 1
+            # Recursively call depth limited search until limit is 0
+            cube, n = self.dls(cube, limit - 1)
+            nodeCount += n
+            if cube.isSolved():
+                return cube, nodeCount
+        return cube0, nodeCount
 
 
 def main():
@@ -267,6 +305,15 @@ def main():
         cube = Cube()
         cube.state = cube.applyMovesStr(argv[2])
         moves, nodeCount, time = cube.bfs()
+        print(" ".join(moves))
+        # cube.printSequence(moves)
+        print(nodeCount)
+        print(round(time, 2))
+    elif cmd == "ids" and argc > 2:
+        cube = Cube()
+        cube.state = cube.applyMovesStr(argv[2])
+        moves, nodeCount, time, depth = cube.ids()
+        print("IDS found a solution at depth", depth)
         print(" ".join(moves))
         # cube.printSequence(moves)
         print(nodeCount)
