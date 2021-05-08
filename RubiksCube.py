@@ -1,4 +1,4 @@
-from random import choice
+from random import choice, randint
 from sys import argv
 from time import time
 from RubiksVisualizer import RubiksVisualizer
@@ -209,33 +209,35 @@ class Cube:
     def addMove(self, move):
         self.moves.append(move)
 
+    def heuristic(self, state):
+        normState = self.norm(state)
+
     # Solves the cube with breadth-first search
     def bfs(self):
         if self.isSolved():
             return self.moves, 0, 0.0
         start = time()
-        opened = [self.state]
-        # Keeps track of cubes so we can track moves for the state
-        cubes = [self]
-        closed = []
+        opened = {self.state: self}
+        closed = set()
+        nodeCount = 0
         while opened:
-            state0 = opened.pop(0)
-            cube0 = cubes.pop(0)
-            closed.append(state0)
+            state0 = list(opened.keys())[0]
+            cube0 = opened.pop(state0)
+            closed.add(state0)
             for move in MOVES.keys():
-                # Skips moves that lead to unnecessary states
+                # Skips moves that lead to inverse and complement states
                 if not cube0.validMove(move):
                     continue
                 # Applies move and normalizes result so we don't store duplicate states
                 state = self.norm(self.applyMove(cube0.state, move))
-                cube = Cube(state, cube0.moves[:])
-                # Tracks the moves up to this cube
-                cube.addMove(move)
                 if state not in closed and state not in opened:
+                    nodeCount += 1
+                    # Creates a cube for this state and tracks the moves
+                    cube = Cube(state, cube0.moves[:])
+                    cube.addMove(move)
                     if cube.isSolved():
-                        return cube.moves, len(closed), time() - start
-                    opened.append(state)
-                    cubes.append(cube)
+                        return cube.moves, nodeCount, time() - start
+                    opened[state] = cube
 
     # Solves the cube using iterative deepening search
     def ids(self):
@@ -321,6 +323,14 @@ def main():
         cube.state = cube.applyMovesStr(argv[2])
         moves, nodeCount, time, depth = cube.ids()
         print("IDS found a solution at depth", depth)
+        print(" ".join(moves))
+        cube.printSequence(moves)
+        print(nodeCount)
+        print(round(time, 2))
+    elif cmd == "astar" and argc > 2:
+        cube = Cube()
+        cube.state = cube.applyMovesStr(argv[2])
+        moves, nodeCount, time = cube.astar()
         print(" ".join(moves))
         cube.printSequence(moves)
         print(nodeCount)
