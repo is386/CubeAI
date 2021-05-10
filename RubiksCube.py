@@ -210,33 +210,47 @@ class Cube:
                        "B'": "F", "B": "F'"}
         return complements[move]
 
+    # Adds a move to the cube's list of applied moves
     def addMove(self, move):
         self.moves.append(move)
 
+    # Computes the sum of number of moves to put each corner in its
+    # correct position divided by 4
     def heuristic(self, state):
+        myCorners = []
+        solvedCorners = []
+        cornerSum = 0
         s = self.norm(state)
         solved = Cube().state
+
+        # Corner indices
         corners = [(10, 12, 19), (6, 11, 13),
                    (2, 8, 17), (3, 4, 9),
                    (14, 18, 23), (7, 15, 22),
                    (0, 16, 21), (1, 5, 20)]
+
+        # Coordinates for the corners in a 3D plot
         coords = [(0, 0, 0), (0, 1, 0), (1, 0, 0), (1, 1, 0),
                   (0, 0, 1), (0, 1, 1), (1, 0, 1), (1, 1, 1)]
-        myCorners = []
-        solvedCorners = []
 
+        # Goes through the corners of the state and a solved state
+        # and tracks them in their respective lists
         for x, y, z in corners:
             corner = "".join(sorted(s[x] + s[y] + s[z]))
             myCorners.append(corner)
             corner = "".join(sorted(solved[x] + solved[y] + solved[z]))
             solvedCorners.append(corner)
 
-        cornerSum = 0
+        # Goes through each coordinate for the 3D plot
         for i in range(len(coords)):
+            # Gets the corner at the current coord
             myCorner = myCorners[i]
             myCoords = coords[i]
+            # Gets the coords for the corner if it was actually solved
             idx = solvedCorners.index(myCorner)
             solvedCoords = coords[idx]
+            # If the current corner's coords are not the same as its
+            # solved coords, then compute the 3D manhattan distance
             if myCoords != solvedCoords:
                 x = abs(solvedCoords[0] - myCoords[0])
                 y = abs(solvedCoords[1] - myCoords[1])
@@ -250,12 +264,15 @@ class Cube:
         if self.isSolved():
             return self.moves, 0, 0.0
         start = time()
-        opened = {self.state: self}
+        cubes = [self]
+        opened = [self.state]
         closed = set()
         nodeCount = 0
         while opened:
-            state0 = list(opened.keys())[0]
-            cube0 = opened.pop(state0)
+            # Open the first state
+            state0 = opened.pop(0)
+            cube0 = cubes.pop(0)
+            # Close the first state
             closed.add(state0)
             for move in MOVES.keys():
                 # Skips moves that lead to inverse and complement states
@@ -270,7 +287,8 @@ class Cube:
                     cube.addMove(move)
                     if cube.isSolved():
                         return cube.moves, nodeCount, time() - start
-                    opened[state] = cube
+                    opened.append(state)
+                    cubes.append(cube)
 
     # Solves the cube using iterative deepening search
     def ids(self):
@@ -320,8 +338,10 @@ class Cube:
         closed = set()
         nodeCount = 0
         while opened:
+            # Open the first state in the list
             state0 = opened.pop(0)
             cube0 = cubes.pop(0)
+            # Close the state
             closed.add(state0)
             depth = cube0.depth + 1
             for move in MOVES.keys():
@@ -344,7 +364,7 @@ class Cube:
                         if i == len(cubes):
                             opened.append(state)
                             cubes.append(cube)
-                        elif cube.f <= cubes[i].f:
+                        elif cube.f < cubes[i].f:
                             opened.insert(i, state)
                             cubes.insert(i, cube)
                             break
