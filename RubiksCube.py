@@ -1,3 +1,4 @@
+from os import defpath
 from random import choice, randint
 from sys import argv
 from time import time
@@ -45,9 +46,12 @@ moves:
 
 class Cube:
 
-    def __init__(self, string="WWWW RRRR GGGG YYYY OOOO BBBB", moves=[]):
+    def __init__(self, string="WWWW RRRR GGGG YYYY OOOO BBBB", moves=[], parent=None, depth=0, f=0):
         self.state = self.cleanState(string)
         self.moves = moves
+        self.parent = parent
+        self.depth = depth
+        self.f = f
 
     # Checks if the given state is valid for a 2x2 Rubik's Cube
     def cleanState(self, state):
@@ -210,7 +214,36 @@ class Cube:
         self.moves.append(move)
 
     def heuristic(self, state):
-        normState = self.norm(state)
+        s = self.norm(state)
+        solved = Cube().state
+        corners = [(10, 12, 19), (6, 11, 13),
+                   (2, 8, 17), (3, 4, 9),
+                   (14, 18, 23), (7, 15, 22),
+                   (0, 16, 21), (1, 5, 20)]
+        coords = [(0, 0, 0), (0, 1, 0), (1, 0, 0), (1, 1, 0),
+                  (0, 0, 1), (0, 1, 1), (1, 0, 1), (1, 1, 1)]
+        myCorners = []
+        solvedCorners = []
+
+        for x, y, z in corners:
+            corner = "".join(sorted(s[x] + s[y] + s[z]))
+            myCorners.append(corner)
+            corner = "".join(sorted(solved[x] + solved[y] + solved[z]))
+            solvedCorners.append(corner)
+
+        cornerSum = 0
+        for i in range(len(coords)):
+            myCorner = myCorners[i]
+            myCoords = coords[i]
+            idx = solvedCorners.index(myCorner)
+            solvedCoords = coords[idx]
+            if myCoords != solvedCoords:
+                x = abs(solvedCoords[0] - myCoords[0])
+                y = abs(solvedCoords[1] - myCoords[1])
+                z = abs(solvedCoords[2] - myCoords[2])
+                cornerSum += x + y + z
+
+        return cornerSum / 4
 
     # Solves the cube with breadth-first search
     def bfs(self):
@@ -276,6 +309,45 @@ class Cube:
             if cube.isSolved():
                 return cube, nodeCount
         return cube0, nodeCount
+
+    # Solves the cube with breadth-first search
+    def astar(self):
+        if self.isSolved():
+            return self.moves, 0, 0.0
+        start = time()
+        cubes = [self]
+        opened = [self.state]
+        closed = set()
+        nodeCount = 0
+        while opened:
+            state0 = opened.pop(0)
+            cube0 = cubes.pop(0)
+            closed.add(state0)
+            depth = cube0.depth + 1
+            for move in MOVES.keys():
+                # Skips moves that lead to inverse and complement states
+                if not cube0.validMove(move):
+                    continue
+                # Applies move and normalizes result so we don't store duplicate states
+                state = self.norm(self.applyMove(cube0.state, move))
+                if state not in closed and state not in opened:
+                    nodeCount += 1
+                    # Compute heuristic function
+                    f = depth + self.heuristic(state)
+                    # Creates a cube for this state and tracks the moves
+                    cube = Cube(state, cube0.moves[:], cube0, depth, f)
+                    cube.addMove(move)
+                    if cube.isSolved():
+                        return cube.moves, nodeCount, time() - start
+                    # Inserts the state depending on its heuristic
+                    for i in range(len(cubes) + 1):
+                        if i == len(cubes):
+                            opened.append(state)
+                            cubes.append(cube)
+                        elif cube.f <= cubes[i].f:
+                            opened.insert(i, state)
+                            cubes.insert(i, cube)
+                            break
 
 
 def main():
