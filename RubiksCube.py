@@ -2,7 +2,6 @@ from os import defpath
 from random import choice, randint
 from sys import argv
 from time import time
-from RubiksVisualizer import RubiksVisualizer
 
 # different moves
 # https://ruwix.com/online-puzzle-simulators/2x2x2-pocket-cube-simulator.php
